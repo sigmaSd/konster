@@ -1,15 +1,9 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::fmt::{self, Write};
-use std::mem;
-
-fn main() {}
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Style;
 
 type String = KVec<u8>;
-type str = KVec<u8>;
 
 #[derive(Clone, Copy, PartialEq)]
 struct KVec<T> {
@@ -29,6 +23,7 @@ impl std::fmt::Debug for KVec<TemplatePart> {
     }
 }
 impl KVec<TemplatePart> {
+    #[must_use]
     const fn new() -> Self {
         Self {
             a: [TemplatePart::NewLine; 50],
@@ -41,11 +36,13 @@ impl KVec<TemplatePart> {
         }
         Some(self.a[self.idx - 1])
     }
+    #[must_use]
     const fn push(mut self, s: TemplatePart) -> Self {
         self.a[self.idx] = s;
         self.idx += 1;
         self
     }
+    #[must_use]
     const fn set_last(mut self, style: TemplatePart) -> Self {
         if self.is_empty() {
             panic!("KVec is empty");
@@ -55,9 +52,11 @@ impl KVec<TemplatePart> {
     }
 }
 impl String {
+    #[must_use]
     const fn new() -> Self {
         Self { a: [0; 50], idx: 0 }
     }
+    #[must_use]
     const fn push_str(mut self, s: &Self) -> Self {
         let mut q = 0;
         while q < s.len() {
@@ -66,6 +65,7 @@ impl String {
         }
         self
     }
+    #[must_use]
     const fn from(s: &std::primitive::str) -> Self {
         let s = s.as_bytes();
         let mut a = [0; 50];
@@ -106,13 +106,6 @@ impl<T> KVec<T> {
         self.idx
     }
     const fn is_empty(&self) -> bool {
-        const Q: Template = Template::from_str(r#"{ "foo": "{foo}", "bar": {bar} }"#);
-        const R: Template = Template::from_str("{foo:^54.red.on_blue/green.on_cyan}");
-        #[test]
-        fn a() {
-            dbg!(Q);
-            dbg!(R);
-        }
         self.idx == 0
     }
     #[must_use]
@@ -123,12 +116,12 @@ impl<T> KVec<T> {
 }
 
 #[derive(Clone, Debug)]
-struct Template {
+pub struct Template {
     parts: KVec<TemplatePart>,
 }
 
 impl Template {
-    const fn from_str(s: &std::primitive::str) -> Self {
+    pub const fn from_str(s: &std::primitive::str) -> Self {
         use State::*;
         let (mut state, mut parts, mut buf): (State, KVec<TemplatePart>, String) =
             (Literal, KVec::<TemplatePart>::new(), String::new());
@@ -152,7 +145,7 @@ impl Template {
                     if !buf.is_empty() {
                         parts = parts.push(TemplatePart::Literal(take_buf!()));
                     }
-                    parts.push(TemplatePart::NewLine);
+                    parts = parts.push(TemplatePart::NewLine);
                     (Literal, None)
                 }
                 (Literal, '}') => (DoubleClose, Some('}')),
@@ -164,9 +157,9 @@ impl Template {
                     // backtrack and act as if this was a literal.
                     buf = buf.push(c as u8);
                     let mut new = String::from("{");
-                    new.push_str(&buf);
+                    new = new.push_str(&buf);
                     buf = buf.clear();
-                    parts.push(TemplatePart::Literal(new));
+                    parts = parts.push(TemplatePart::Literal(new));
                     (Literal, None)
                 }
                 (MaybeOpen, c) if c != '}' && c != ':' => (Key, Some(c)),
@@ -174,7 +167,7 @@ impl Template {
                 (Key, ':') => (Align, None),
                 (Key, '}') => (Literal, None),
                 (Key, '!') if !buf.is_empty() => {
-                    parts.push(TemplatePart::Placeholder {
+                    parts = parts.push(TemplatePart::Placeholder {
                         key: take_buf!(),
                         align: Alignment::Left,
                         width: None,
@@ -188,7 +181,7 @@ impl Template {
                     if !parts.is_empty() {
                         match parts.last() {
                             Some(TemplatePart::Placeholder {
-                                align,
+                                align: _align,
                                 key,
                                 width,
                                 truncate,
@@ -241,7 +234,7 @@ impl Template {
                                 align,
                                 key,
                                 width,
-                                truncate,
+                                truncate: _truncate,
                                 alt_style,
                                 style,
                             }) => {
@@ -269,13 +262,12 @@ impl Template {
                 (FirstStyle, c) => (FirstStyle, Some(c)),
                 (AltStyle, '}') => (Literal, None),
                 (AltStyle, c) => (AltStyle, Some(c)),
-                (st, c) => panic!("unreachable state"),
+                (_st, _c) => panic!("unreachable state"),
             };
 
             match (state, new.0) {
                 (MaybeOpen, Key) if !buf.is_empty() => {
                     parts = parts.push(TemplatePart::Literal(take_buf!()));
-                    buf = take_buf!();
                 }
                 (Key, Align) | (Key, Literal) if !buf.is_empty() => {
                     parts = parts.push(TemplatePart::Placeholder {
@@ -293,7 +285,7 @@ impl Template {
                             Some(TemplatePart::Placeholder {
                                 align,
                                 key,
-                                width,
+                                width: _width,
                                 truncate,
                                 alt_style,
                                 style,
@@ -321,7 +313,7 @@ impl Template {
                                 width,
                                 truncate,
                                 alt_style,
-                                style,
+                                style: _style,
                             }) => {
                                 parts = parts.set_last(TemplatePart::Placeholder {
                                     key,
@@ -345,7 +337,7 @@ impl Template {
                                 key,
                                 width,
                                 truncate,
-                                alt_style,
+                                alt_style: _alt_style,
                                 style,
                             }) => {
                                 parts = parts.set_last(TemplatePart::Placeholder {
@@ -372,7 +364,7 @@ impl Template {
         }
 
         if matches!(state, Literal | DoubleClose) && !buf.is_empty() {
-            parts.push(TemplatePart::Literal(buf));
+            parts = parts.push(TemplatePart::Literal(buf));
         }
 
         Self { parts }
@@ -412,8 +404,8 @@ enum Alignment {
     Right,
 }
 
-const Q: Template = Template::from_str(r#"{ "foo": "{foo}", "bar": {bar} }"#);
-const R: Template = Template::from_str("{foo:^54.red.on_blue/green.on_cyan}");
+pub const Q: Template = Template::from_str(r#"{ "foo": "{foo}", "bar": {bar} }"#);
+pub const R: Template = Template::from_str("{foo:^54.red.on_blue/green.on_cyan}");
 #[test]
 fn a() {
     dbg!(Q);
