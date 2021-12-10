@@ -134,10 +134,10 @@ impl Template {
         }
 
         let s = s.as_bytes();
-        let mut qsd = 0;
-        while qsd < s.len() {
-            let c = s[qsd] as char;
-            qsd += 1;
+        let mut string_index = 0;
+        while string_index < s.len() {
+            let c = s[string_index] as char;
+            string_index += 1;
 
             let new = match (state, c) {
                 (Literal, '{') => (MaybeOpen, None),
@@ -179,15 +179,16 @@ impl Template {
                 }
                 (Align, c) if c == '<' || c == '^' || c == '>' => {
                     if !parts.is_empty() {
-                        match parts.last() {
-                            Some(TemplatePart::Placeholder {
-                                align: _align,
-                                key,
-                                width,
-                                truncate,
-                                alt_style,
-                                style,
-                            }) => match c {
+                        if let Some(TemplatePart::Placeholder {
+                            align: _align,
+                            key,
+                            width,
+                            truncate,
+                            alt_style,
+                            style,
+                        }) = parts.last()
+                        {
+                            match c {
                                 '<' => {
                                     parts = parts.set_last(TemplatePart::Placeholder {
                                         align: Alignment::Left,
@@ -219,8 +220,7 @@ impl Template {
                                     });
                                 }
                                 _ => (),
-                            },
-                            _ => (),
+                            }
                         }
                     }
 
@@ -229,25 +229,23 @@ impl Template {
                 (Align, c @ '0'..='9') => (Width, Some(c)),
                 (Align, '!') | (Width, '!') => {
                     if !parts.is_empty() {
-                        match parts.last() {
-                            Some(TemplatePart::Placeholder {
-                                align,
+                        if let Some(TemplatePart::Placeholder {
+                            align,
+                            key,
+                            width,
+                            truncate: _truncate,
+                            alt_style,
+                            style,
+                        }) = parts.last()
+                        {
+                            parts = parts.set_last(TemplatePart::Placeholder {
                                 key,
+                                align,
                                 width,
-                                truncate: _truncate,
-                                alt_style,
+                                truncate: true,
                                 style,
-                            }) => {
-                                parts = parts.set_last(TemplatePart::Placeholder {
-                                    key,
-                                    align,
-                                    width,
-                                    truncate: true,
-                                    style,
-                                    alt_style,
-                                })
-                            }
-                            _ => (),
+                                alt_style,
+                            })
                         }
                     }
                     (Width, None)
@@ -281,76 +279,70 @@ impl Template {
                 }
                 (Width, FirstStyle) | (Width, Literal) if !buf.is_empty() => {
                     if !parts.is_empty() {
-                        match parts.last() {
-                            Some(TemplatePart::Placeholder {
-                                align,
+                        if let Some(TemplatePart::Placeholder {
+                            align,
+                            key,
+                            width: _width,
+                            truncate,
+                            alt_style,
+                            style,
+                        }) = parts.last()
+                        {
+                            parts = parts.set_last(TemplatePart::Placeholder {
                                 key,
-                                width: _width,
+                                align,
+                                width: Some(buf.parse()),
                                 truncate,
-                                alt_style,
                                 style,
-                            }) => {
-                                parts = parts.set_last(TemplatePart::Placeholder {
-                                    key,
-                                    align,
-                                    width: Some(buf.parse()),
-                                    truncate,
-                                    style,
-                                    alt_style,
-                                });
-                                buf = buf.clear();
-                            }
-                            _ => (),
+                                alt_style,
+                            });
+                            buf = buf.clear();
                         }
                     }
                 }
                 (FirstStyle, AltStyle) | (FirstStyle, Literal) if !buf.is_empty() => {
                     if !parts.is_empty() {
-                        match parts.last() {
-                            Some(TemplatePart::Placeholder {
-                                align,
+                        if let Some(TemplatePart::Placeholder {
+                            align,
+                            key,
+                            width,
+                            truncate,
+                            alt_style,
+                            style: _style,
+                        }) = parts.last()
+                        {
+                            parts = parts.set_last(TemplatePart::Placeholder {
                                 key,
+                                align,
                                 width,
                                 truncate,
+                                style: Some(Style),
                                 alt_style,
-                                style: _style,
-                            }) => {
-                                parts = parts.set_last(TemplatePart::Placeholder {
-                                    key,
-                                    align,
-                                    width,
-                                    truncate,
-                                    style: Some(Style),
-                                    alt_style,
-                                });
-                                buf = buf.clear();
-                            }
-                            _ => (),
+                            });
+                            buf = buf.clear();
                         }
                     }
                 }
                 (AltStyle, Literal) if !buf.is_empty() => {
                     if !parts.is_empty() {
-                        match parts.last() {
-                            Some(TemplatePart::Placeholder {
-                                align,
+                        if let Some(TemplatePart::Placeholder {
+                            align,
+                            key,
+                            width,
+                            truncate,
+                            alt_style: _alt_style,
+                            style,
+                        }) = parts.last()
+                        {
+                            parts = parts.set_last(TemplatePart::Placeholder {
                                 key,
+                                align,
                                 width,
                                 truncate,
-                                alt_style: _alt_style,
                                 style,
-                            }) => {
-                                parts = parts.set_last(TemplatePart::Placeholder {
-                                    key,
-                                    align,
-                                    width,
-                                    truncate,
-                                    style,
-                                    alt_style: Some(Style),
-                                });
-                                buf = buf.clear();
-                            }
-                            _ => (),
+                                alt_style: Some(Style),
+                            });
+                            buf = buf.clear();
                         }
                     }
                 }
