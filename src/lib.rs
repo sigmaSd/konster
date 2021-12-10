@@ -178,49 +178,47 @@ impl Template {
                     (Width, None)
                 }
                 (Align, c) if c == '<' || c == '^' || c == '>' => {
-                    if !parts.is_empty() {
-                        if let Some(TemplatePart::Placeholder {
-                            align: _align,
-                            key,
-                            width,
-                            truncate,
-                            alt_style,
-                            style,
-                        }) = parts.last()
-                        {
-                            match c {
-                                '<' => {
-                                    parts = parts.set_last(TemplatePart::Placeholder {
-                                        align: Alignment::Left,
-                                        key,
-                                        width,
-                                        truncate,
-                                        alt_style,
-                                        style,
-                                    });
-                                }
-                                '^' => {
-                                    parts = parts.set_last(TemplatePart::Placeholder {
-                                        align: Alignment::Center,
-                                        key,
-                                        width,
-                                        truncate,
-                                        alt_style,
-                                        style,
-                                    });
-                                }
-                                '>' => {
-                                    parts = parts.set_last(TemplatePart::Placeholder {
-                                        align: Alignment::Right,
-                                        key,
-                                        width,
-                                        truncate,
-                                        alt_style,
-                                        style,
-                                    });
-                                }
-                                _ => (),
+                    if let Some(TemplatePart::Placeholder {
+                        align: _align,
+                        key,
+                        width,
+                        truncate,
+                        alt_style,
+                        style,
+                    }) = parts.last()
+                    {
+                        match c {
+                            '<' => {
+                                parts = parts.set_last(TemplatePart::Placeholder {
+                                    align: Alignment::Left,
+                                    key,
+                                    width,
+                                    truncate,
+                                    alt_style,
+                                    style,
+                                });
                             }
+                            '^' => {
+                                parts = parts.set_last(TemplatePart::Placeholder {
+                                    align: Alignment::Center,
+                                    key,
+                                    width,
+                                    truncate,
+                                    alt_style,
+                                    style,
+                                });
+                            }
+                            '>' => {
+                                parts = parts.set_last(TemplatePart::Placeholder {
+                                    align: Alignment::Right,
+                                    key,
+                                    width,
+                                    truncate,
+                                    alt_style,
+                                    style,
+                                });
+                            }
+                            _ => (),
                         }
                     }
 
@@ -228,26 +226,25 @@ impl Template {
                 }
                 (Align, c @ '0'..='9') => (Width, Some(c)),
                 (Align, '!') | (Width, '!') => {
-                    if !parts.is_empty() {
-                        if let Some(TemplatePart::Placeholder {
-                            align,
+                    if let Some(TemplatePart::Placeholder {
+                        align,
+                        key,
+                        width,
+                        truncate: _truncate,
+                        alt_style,
+                        style,
+                    }) = parts.last()
+                    {
+                        parts = parts.set_last(TemplatePart::Placeholder {
                             key,
+                            align,
                             width,
-                            truncate: _truncate,
-                            alt_style,
+                            truncate: true,
                             style,
-                        }) = parts.last()
-                        {
-                            parts = parts.set_last(TemplatePart::Placeholder {
-                                key,
-                                align,
-                                width,
-                                truncate: true,
-                                style,
-                                alt_style,
-                            })
-                        }
+                            alt_style,
+                        })
                     }
+
                     (Width, None)
                 }
                 (Align, '.') => (FirstStyle, None),
@@ -278,72 +275,66 @@ impl Template {
                     });
                 }
                 (Width, FirstStyle) | (Width, Literal) if !buf.is_empty() => {
-                    if !parts.is_empty() {
-                        if let Some(TemplatePart::Placeholder {
-                            align,
+                    if let Some(TemplatePart::Placeholder {
+                        align,
+                        key,
+                        width: _width,
+                        truncate,
+                        alt_style,
+                        style,
+                    }) = parts.last()
+                    {
+                        parts = parts.set_last(TemplatePart::Placeholder {
                             key,
-                            width: _width,
+                            align,
+                            width: Some(buf.parse()),
                             truncate,
-                            alt_style,
                             style,
-                        }) = parts.last()
-                        {
-                            parts = parts.set_last(TemplatePart::Placeholder {
-                                key,
-                                align,
-                                width: Some(buf.parse()),
-                                truncate,
-                                style,
-                                alt_style,
-                            });
-                            buf = buf.clear();
-                        }
+                            alt_style,
+                        });
+                        buf = buf.clear();
                     }
                 }
                 (FirstStyle, AltStyle) | (FirstStyle, Literal) if !buf.is_empty() => {
-                    if !parts.is_empty() {
-                        if let Some(TemplatePart::Placeholder {
-                            align,
+                    if let Some(TemplatePart::Placeholder {
+                        align,
+                        key,
+                        width,
+                        truncate,
+                        alt_style,
+                        style: _style,
+                    }) = parts.last()
+                    {
+                        parts = parts.set_last(TemplatePart::Placeholder {
                             key,
+                            align,
                             width,
                             truncate,
+                            style: Some(Style),
                             alt_style,
-                            style: _style,
-                        }) = parts.last()
-                        {
-                            parts = parts.set_last(TemplatePart::Placeholder {
-                                key,
-                                align,
-                                width,
-                                truncate,
-                                style: Some(Style),
-                                alt_style,
-                            });
-                            buf = buf.clear();
-                        }
+                        });
+                        buf = buf.clear();
                     }
                 }
                 (AltStyle, Literal) if !buf.is_empty() => {
-                    if !parts.is_empty() {
-                        if let Some(TemplatePart::Placeholder {
-                            align,
+                    if let Some(TemplatePart::Placeholder {
+                        align,
+                        key,
+                        width,
+                        truncate,
+                        alt_style: _alt_style,
+                        style,
+                    }) = parts.last()
+                    {
+                        parts = parts.set_last(TemplatePart::Placeholder {
                             key,
+                            align,
                             width,
                             truncate,
-                            alt_style: _alt_style,
                             style,
-                        }) = parts.last()
-                        {
-                            parts = parts.set_last(TemplatePart::Placeholder {
-                                key,
-                                align,
-                                width,
-                                truncate,
-                                style,
-                                alt_style: Some(Style),
-                            });
-                            buf = buf.clear();
-                        }
+                            alt_style: Some(Style),
+                        });
+                        buf = buf.clear();
                     }
                 }
                 (_, _) => (),
