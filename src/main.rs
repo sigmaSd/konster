@@ -3,19 +3,129 @@ use std::collections::HashMap;
 use std::fmt::{self, Write};
 use std::mem;
 
-
 fn main() {}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Style;
 
+type String = KVec<u8>;
+type str = KVec<u8>;
+
+#[derive(Clone, Copy, PartialEq)]
+struct KVec<T> {
+    a: [T; 50],
+    idx: usize,
+}
+impl std::fmt::Debug for String {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+impl std::fmt::Debug for KVec<TemplatePart> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("KVec")
+            .field("inner", &&self.a[..self.idx])
+            .finish()
+    }
+}
+impl KVec<TemplatePart> {
+    const fn new() -> Self {
+        Self {
+            a: [TemplatePart::NewLine; 50],
+            idx: 0,
+        }
+    }
+    const fn last(&self) -> Option<TemplatePart> {
+        if self.is_empty() {
+            return None;
+        }
+        Some(self.a[self.idx - 1])
+    }
+    const fn push(mut self, s: TemplatePart) -> Self {
+        self.a[self.idx] = s;
+        self.idx += 1;
+        self
+    }
+    const fn set_last(mut self, style: TemplatePart) -> Self {
+        if self.is_empty() {
+            panic!("KVec is empty");
+        }
+        self.a[self.idx - 1] = style;
+        self
+    }
+}
+impl String {
+    const fn new() -> Self {
+        Self { a: [0; 50], idx: 0 }
+    }
+    const fn push_str(mut self, s: &Self) -> Self {
+        let mut q = 0;
+        while q < s.len() {
+            self = self.push(s.a[q]);
+            q += 1;
+        }
+        self
+    }
+    const fn from(s: &std::primitive::str) -> Self {
+        let s = s.as_bytes();
+        let mut a = [0; 50];
+        let mut q = 0;
+        while q < s.len() {
+            a[q] = s[q];
+            q += 1;
+        }
+        Self { a, idx: 0 }
+    }
+    #[must_use]
+    const fn push(mut self, s: u8) -> Self {
+        self.a[self.idx] = s;
+        self.idx += 1;
+        self
+    }
+    const fn parse(self) -> u16 {
+        let mut q = 0;
+        let mut r = 0;
+        let mut pow = self.idx - 1;
+
+        loop {
+            r += (self.a[q] as usize - 48) * 10_usize.pow(pow as _);
+            if pow == 0 {
+                break;
+            }
+            pow -= 1;
+            q += 1;
+        }
+        r as _
+    }
+    fn as_str(&self) -> &std::primitive::str {
+        std::str::from_utf8(&self.a[..self.idx]).unwrap()
+    }
+}
+impl<T> KVec<T> {
+    const fn len(&self) -> usize {
+        self.idx
+    }
+    const fn is_empty(&self) -> bool {
+        const Q: Template = Template::from_str(r#"{ "foo": "{foo}", "bar": {bar} }"#);
+        const R: Template = Template::from_str("{foo:^54.red.on_blue/green.on_cyan}");
+        #[test]
+        fn a() {
+            dbg!(Q);
+            dbg!(R);
+        }
+        self.idx == 0
+    }
+    #[must_use]
+    const fn clear(mut self) -> Self {
+        self.idx = 0;
+        self
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Template {
     parts: KVec<TemplatePart>,
 }
-
-type String = KVec<u8>;
-type str = KVec<u8>;
 
 impl Template {
     const fn from_str(s: &std::primitive::str) -> Self {
@@ -295,185 +405,11 @@ enum State {
     AltStyle,
 }
 
-struct RepeatedStringDisplay<'a> {
-    str: &'a str,
-    num: usize,
-}
-
-impl<'a> fmt::Display for RepeatedStringDisplay<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for _ in 0..self.num {
-            f.write_str(self.str.as_str())?;
-        }
-        Ok(())
-    }
-}
-
-struct PaddedStringDisplay<'a> {
-    str: &'a str,
-    width: usize,
-    align: Alignment,
-    truncate: bool,
-}
-
-impl<'a> fmt::Display for PaddedStringDisplay<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let cols = measure_text_width(self.str);
-        if cols >= self.width {
-            return match self.truncate {
-                true => f.write_str(
-                    self.str
-                        .as_str()
-                        .get(..self.width)
-                        .unwrap_or(self.str.as_str()),
-                ),
-                false => f.write_str(self.str.as_str()),
-            };
-        }
-
-        let diff = self.width.saturating_sub(cols);
-        let (left_pad, right_pad) = match self.align {
-            Alignment::Left => (0, diff),
-            Alignment::Right => (diff, 0),
-            Alignment::Center => (diff / 2, diff.saturating_sub(diff / 2)),
-        };
-
-        for _ in 0..left_pad {
-            f.write_char(' ')?;
-        }
-        f.write_str(self.str.as_str())?;
-        for _ in 0..right_pad {
-            f.write_char(' ')?;
-        }
-        Ok(())
-    }
-}
-
-fn measure_text_width(str: &str) -> usize {
-    str.len()
-}
-
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 enum Alignment {
     Left,
     Center,
     Right,
-}
-impl Style {
-    pub(crate) fn from_dotted_str(buf: &str) -> Style {
-        Style
-    }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-struct KVec<T> {
-    a: [T; 50],
-    idx: usize,
-}
-impl std::fmt::Debug for String {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-impl std::fmt::Debug for KVec<TemplatePart> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("KVec")
-            .field("inner", &&self.a[..self.idx])
-            .finish()
-    }
-}
-impl KVec<TemplatePart> {
-    const fn new() -> Self {
-        Self {
-            a: [TemplatePart::NewLine; 50],
-            idx: 0,
-        }
-    }
-
-    const fn last(&self) -> Option<TemplatePart> {
-        if self.is_empty() {
-            return None;
-        }
-        Some(self.a[self.idx - 1])
-    }
-}
-impl String {
-    const fn new() -> Self {
-        Self { a: [0; 50], idx: 0 }
-    }
-    const fn push_str(mut self, s: &Self) -> Self {
-        let mut q = 0;
-        while q < s.len() {
-            self = self.push(s.a[q]);
-            q += 1;
-        }
-        self
-    }
-    const fn from(s: &std::primitive::str) -> Self {
-        let s = s.as_bytes();
-        let mut a = [0; 50];
-        let mut q = 0;
-        while q < s.len() {
-            a[q] = s[q];
-            q += 1;
-        }
-        Self { a, idx: 0 }
-    }
-}
-impl KVec<TemplatePart> {
-    const fn push(mut self, s: TemplatePart) -> Self {
-        self.a[self.idx] = s;
-        self.idx += 1;
-        self
-    }
-    const fn set_last(mut self, style: TemplatePart) -> Self {
-        if self.is_empty() {
-            panic!("KVec is empty");
-        }
-        self.a[self.idx - 1] = style;
-        self
-    }
-}
-impl String {
-    #[must_use]
-    const fn push(mut self, s: u8) -> Self {
-        self.a[self.idx] = s;
-        self.idx += 1;
-        self
-    }
-
-    const fn parse(self) -> u16 {
-        let mut q = 0;
-        let mut r = 0;
-        let mut pow = self.idx - 1;
-
-        loop {
-            r += (self.a[q] as usize - 48) * 10_usize.pow(pow as _);
-            if pow == 0 {
-                break;
-            }
-            pow -= 1;
-            q += 1;
-        }
-        r as _
-    }
-
-    fn as_str(&self) -> &std::primitive::str {
-        std::str::from_utf8(&self.a[..self.idx]).unwrap()
-    }
-}
-impl<T> KVec<T> {
-    const fn len(&self) -> usize {
-        self.idx
-    }
-    const fn is_empty(&self) -> bool {
-        self.idx == 0
-    }
-    #[must_use]
-    const fn clear(mut self) -> Self {
-        self.idx = 0;
-        self
-    }
 }
 
 const Q: Template = Template::from_str(r#"{ "foo": "{foo}", "bar": {bar} }"#);
