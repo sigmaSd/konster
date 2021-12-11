@@ -1,4 +1,4 @@
-//! This crate exposed const equivalents of standard library types.
+//! This crate exposes const equivalents of standard library types.
 //!
 //! ```rust
 //!    use konster::kstr::GKStr;
