@@ -1,4 +1,8 @@
-use konster::{kstr::KStr, kvec::KVec};
+use konster::kstr::KStr;
+use konster::kvec::KVec;
+
+type CKVec<T> = KVec<T, 50>;
+type CKstr = KStr<50>;
 
 fn main() {
     const Q: Template = Template::from_str(r#"{ "foo": "{foo}", "bar": {bar} }"#);
@@ -19,8 +23,8 @@ pub struct Template {
 impl Template {
     pub const fn from_str(s: &std::primitive::str) -> Self {
         use State::*;
-        let (mut state, mut parts, mut buf): (State, TemplatePartVec, KStr) =
-            (Literal, TemplatePartVec::new(), KStr::new());
+        let (mut state, mut parts, mut buf): (State, TemplatePartVec, CKstr) =
+            (Literal, TemplatePartVec::new(), CKstr::new());
         macro_rules! take_buf {
             () => {{
                 let res = buf;
@@ -52,8 +56,8 @@ impl Template {
                     // If we find whitespace where the variable key is supposed to go,
                     // backtrack and act as if this was a literal.
                     buf = buf.push(c as u8);
-                    let mut new = KStr::from_str("{");
-                    new = new.push_kstr(&buf);
+                    let mut new = CKstr::from_str("{");
+                    new = new.push_str(&buf);
                     buf = buf.clear();
                     parts = parts.push(TemplatePart::Literal(new));
                     (Literal, None)
@@ -183,7 +187,7 @@ impl Template {
                         parts = parts.set_last(TemplatePart::Placeholder {
                             key,
                             align,
-                            width: Some(buf.parse()),
+                            width: Some(buf.parse_usize() as _),
                             truncate,
                             style,
                             alt_style,
@@ -252,9 +256,9 @@ impl Template {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum TemplatePart {
-    Literal(KStr),
+    Literal(CKstr),
     Placeholder {
-        key: KStr,
+        key: CKstr,
         align: Alignment,
         width: Option<u16>,
         truncate: bool,
@@ -265,35 +269,35 @@ enum TemplatePart {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-struct TemplatePartVec(KVec<TemplatePart>);
+struct TemplatePartVec(CKVec<TemplatePart>);
 
 impl TemplatePartVec {
     #[must_use]
     const fn new() -> Self {
-        Self(KVec {
+        Self(CKVec {
             buf: [TemplatePart::NewLine; 50],
-            idx: 0,
+            cursor: 0,
         })
     }
     #[must_use]
     const fn push(mut self, part: TemplatePart) -> Self {
-        self.0.buf[self.0.idx] = part;
-        self.0.idx += 1;
+        self.0.buf[self.0.cursor] = part;
+        self.0.cursor += 1;
         self
     }
     #[must_use]
     const fn set_last(mut self, style: TemplatePart) -> Self {
         if self.0.is_empty() {
-            panic!("KVec is empty");
+            panic!("CKVec is empty");
         }
-        self.0.buf[self.0.idx - 1] = style;
+        self.0.buf[self.0.cursor - 1] = style;
         self
     }
     pub const fn last_owned(&self) -> Option<TemplatePart> {
         if self.0.is_empty() {
             return None;
         }
-        Some(self.0.buf[self.0.idx - 1])
+        Some(self.0.buf[self.0.cursor - 1])
     }
 }
 
@@ -318,8 +322,8 @@ enum Alignment {
 
 impl std::fmt::Debug for TemplatePartVec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("KVec")
-            .field("inner", &&self.0.buf[..self.0.idx])
+        f.debug_struct("CKVec")
+            .field("inner", &&self.0.buf[..self.0.cursor])
             .finish()
     }
 }
