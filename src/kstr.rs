@@ -21,7 +21,7 @@ impl<const N: usize> KStr<N> {
             },
         }
     }
-    /// Create a new String from std::primitive::str
+    /// Create a new String from [`std::primitive::str`]
     #[must_use]
     pub const fn from_str(string: &str) -> Self {
         let string = string.as_bytes();
@@ -66,6 +66,7 @@ impl<const N: usize> KStr<N> {
         Some((self, val))
     }
     /// Parses the String into a usize.
+    /// # Panics: panic if the string is empty
     pub const fn parse_usize(self) -> usize {
         if self.is_empty() {
             panic!("Can not parse empty String");
@@ -93,14 +94,6 @@ impl<const N: usize> KStr<N> {
             buf: [KStr::<NN>::new(); L],
             cursor: 0,
         };
-        const fn push_to_lines_vec<const N: usize, const L: usize>(
-            mut vec: KVec<KStr<N>, L>,
-            elem: KStr<N>,
-        ) -> KVec<KStr<N>, L> {
-            vec.buf[vec.cursor] = elem;
-            vec.cursor += 1;
-            vec
-        }
         let mut line = KStr::new();
         while idx < self.len() {
             let elem = self.get_unchecked(idx);
@@ -126,14 +119,6 @@ impl<const N: usize> KStr<N> {
             buf: [KStr::<NN>::new(); L],
             cursor: 0,
         };
-        const fn push_to_lines_vec<const N: usize, const L: usize>(
-            mut vec: KVec<KStr<N>, L>,
-            elem: KStr<N>,
-        ) -> KVec<KStr<N>, L> {
-            vec.buf[vec.cursor] = elem;
-            vec.cursor += 1;
-            vec
-        }
         let mut line = KStr::new();
         while idx < self.len() {
             let elem = self.get_unchecked(idx);
@@ -164,6 +149,7 @@ impl<const N: usize> KStr<N> {
     }
     // Forword kvec methods
     /// Returns a new String with elements cleared.
+    #[must_use]
     pub const fn clear(mut self) -> Self {
         self.vec.cursor = 0;
         self
@@ -192,7 +178,8 @@ impl<const N: usize> KStr<N> {
 
 // Runtime methods
 impl<const N: usize> KStr<N> {
-    /// [Runtime method] Create an std::primitive::str from this String
+    /// [Runtime method] Create an [`std::primitive::str`] from this String
+    /// # Panics: Panic if the string in not valid UTF-8
     pub fn as_str(&self) -> &str {
         std::str::from_utf8(&self.vec.buf[..self.vec.cursor]).unwrap()
     }
@@ -201,6 +188,16 @@ impl<const N: usize> std::fmt::Debug for KStr<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
+}
+
+// Helpers
+const fn push_to_lines_vec<const N: usize, const L: usize>(
+    mut vec: KVec<KStr<N>, L>,
+    elem: KStr<N>,
+) -> KVec<KStr<N>, L> {
+    vec.buf[vec.cursor] = elem;
+    vec.cursor += 1;
+    vec
 }
 
 #[cfg(test)]

@@ -2,10 +2,10 @@
 //! This crate exposes const equivalents of standard library types that are usable on stable.
 //!
 //! ```rust
-//!    use konster::kstr::GKStr;
+//!    use konster::kstr::KStr;
 //!
 //!    const _: () = {
-//!        let mut str = GKStr::<20>::new();
+//!        let mut str = KStr::<20>::new();
 //!        str = str.push(4);
 //!        let (str, val) = match str.pop() {
 //!             Some((str,val)) => (str, val),
@@ -17,7 +17,7 @@
 //!    };
 //! ```
 
-/// This module contains a HashMap like struct that can be used in const context
+/// This module contains a Map like struct that can be used in const context
 pub mod kmap;
 /// This module contains a Vector like struct that can be used in const context
 pub mod kstr;
