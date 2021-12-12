@@ -1,24 +1,55 @@
-use std::mem::ManuallyDrop;
-
 use crate::kvec::KVec;
 
+/// HashMap like struct
+///
+/// Inorder to use it you need to wrap it in a custom type
+///
+/// ```rust
+/// use konster::kvec::KVec;
+/// use konster::kmap::KMap;
+///
+/// struct Map {
+///     map: KMap<u8, usize, 200>,
+/// }
+/// impl Map {
+///     const fn new() -> Self {
+///         Self {
+///             map: KMap {
+///                 vec: KVec {
+///                     buf: [(0, 0); 200],
+///                     cursor: 0,
+///                 },
+///             },
+///         }
+///     }
+/// }
+/// impl Map {
+///     const fn get(&self, key: &u8) -> Option<usize> {
+///         let mut idx = 0;
+///         while idx < self.map.vec.len() {
+///             if self.map.vec.get_unchecked(idx).0 == *key {
+///                 return Some(self.map.vec.buf[idx].1);
+///             }
+///             idx += 1;
+///         }
+///         None
+///     }
+///     const fn insert(mut self, key: u8, value: usize) -> Self {
+///         let mut idx = 0;
+///         while idx < self.map.vec.len() {
+///             if self.map.vec.get_unchecked(idx).0 == key {
+///                 self.map.vec.buf[idx].1 = value;
+///                 return self;
+///             }
+///             idx += 1;
+///         }
+///         self.map.vec.buf[self.map.vec.cursor] = (key, value);
+///         self.map.vec.cursor += 1;
+///         self
+///     }
+/// }
+/// ```
 pub struct KMap<K, V, const N: usize> {
-    vec: KVec<(K, V), N>,
-}
-
-impl<K, V, const N: usize> KMap<K, V, N> {
-    pub const fn insert(mut self, key: K, value: V) -> Self {
-        let mut idx = 0;
-        while idx < self.vec.len() {
-            if matches!(&self.vec.get_unchecked(idx).0, key) {
-                let mut buf = ManuallyDrop::new(self.vec.buf);
-                //buf[self.vec.cursor - 1].1 = value;
-                self.vec.buf[self.vec.cursor - 1].1 = value;
-                return self;
-            }
-            idx += 1;
-        }
-        //self.vec.buf[self.vec.cursor] = (key, value);
-        self
-    }
+    /// The backing Vector of the Map
+    pub vec: KVec<(K, V), N>,
 }

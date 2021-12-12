@@ -1,4 +1,5 @@
-//! This crate exposes const equivalents of standard library types.
+#![warn(missing_docs)]
+//! This crate exposes const equivalents of standard library types that are usable on stable.
 //!
 //! ```rust
 //!    use konster::kstr::GKStr;
@@ -15,9 +16,10 @@
 //!        }
 //!    };
 //! ```
-#![warn(missing_docs)]
+
+/// This module contains a HashMap like struct that can be used in const context
 pub mod kmap;
-/// This module contains GKStr type which is a String like struct that can be used in const context
+/// This module contains a Vector like struct that can be used in const context
 pub mod kstr;
-/// This module contains GKVec type which is a String like struct that can be used in const context
+/// This module contains a String like struct that can be used in const context
 pub mod kvec;

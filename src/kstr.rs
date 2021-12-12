@@ -85,9 +85,9 @@ impl<const N: usize> KStr<N> {
         }
         result as _
     }
-    /// Returns a Vector of the String lines
-    /// The backing buffer length of the lines, and the backing buffer length for each string needs to specified as const generics.
-    pub const fn lines<const L: usize, const NN: usize>(&self) -> KVec<KStr<NN>, L> {
+    /// Returns a Vector of the Strings by splitting the string on the specified char
+    /// The backing buffer length of the Vector, and the backing buffer length for each string needs to specified as const generics.
+    pub const fn split<const L: usize, const NN: usize>(&self, split: u8) -> KVec<KStr<NN>, L> {
         let mut idx = 0;
         let mut vec = KVec {
             buf: [KStr::<NN>::new(); L],
@@ -104,19 +104,63 @@ impl<const N: usize> KStr<N> {
         let mut line = KStr::new();
         while idx < self.len() {
             let elem = self.get_unchecked(idx);
-            match elem {
-                b'\n' => {
-                    vec = push_to_lines_vec(vec, line);
-                    line = line.clear();
-                }
-                _ => line = line.push(*elem),
+            if *elem == split {
+                vec = push_to_lines_vec(vec, line);
+                line = line.clear();
+            } else {
+                line = line.push(*elem);
             }
+
             idx += 1;
         }
         if !line.is_empty() {
             vec = push_to_lines_vec(vec, line);
         }
         vec
+    }
+    /// Returns a Vector of the Strings, by splitting the original String by white space.
+    /// The backing buffer length of the lines, and the backing buffer length for each string needs to specified as const generics.
+    pub const fn split_whitespace<const L: usize, const NN: usize>(&self) -> KVec<KStr<NN>, L> {
+        let mut idx = 0;
+        let mut vec = KVec {
+            buf: [KStr::<NN>::new(); L],
+            cursor: 0,
+        };
+        const fn push_to_lines_vec<const N: usize, const L: usize>(
+            mut vec: KVec<KStr<N>, L>,
+            elem: KStr<N>,
+        ) -> KVec<KStr<N>, L> {
+            vec.buf[vec.cursor] = elem;
+            vec.cursor += 1;
+            vec
+        }
+        let mut line = KStr::new();
+        while idx < self.len() {
+            let elem = self.get_unchecked(idx);
+            if *elem == b' ' {
+                vec = push_to_lines_vec(vec, line);
+                line = line.clear();
+                while let Some(c) = self.get(idx + 1) {
+                    if *c != b' ' {
+                        break;
+                    }
+                    idx += 1;
+                }
+            } else {
+                line = line.push(*elem);
+            }
+
+            idx += 1;
+        }
+        if !line.is_empty() {
+            vec = push_to_lines_vec(vec, line);
+        }
+        vec
+    }
+    /// Returns a Vector of the String lines
+    /// The backing buffer length of the lines, and the backing buffer length for each string needs to specified as const generics.
+    pub const fn lines<const L: usize, const NN: usize>(&self) -> KVec<KStr<NN>, L> {
+        self.split(b'\n')
     }
     // Forword kvec methods
     /// Returns a new String with elements cleared.

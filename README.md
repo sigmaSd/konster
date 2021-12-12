@@ -1,6 +1,6 @@
 # konster
 
-This crate exposes const equivalents of standard library types.
+This crate exposes const equivalents of standard library types that are usable on stable.
 
 ```rust
    use konster::kstr::GKStr;
