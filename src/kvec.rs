@@ -24,6 +24,10 @@ impl<T, const N: usize> KVec<T, N> {
         self.cursor = 0;
         self
     }
+    /// Returns the element at the index, with no bounds check
+    pub const fn get_unchecked(&self, elem_idx: usize) -> &T {
+        &self.buf[elem_idx]
+    }
     /// Returns the element at the index, or None if its empty.
     pub const fn get(&self, elem_idx: usize) -> Option<&T> {
         if self.is_empty() {

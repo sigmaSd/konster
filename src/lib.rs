@@ -16,6 +16,7 @@
 //!    };
 //! ```
 #![warn(missing_docs)]
+pub mod kmap;
 /// This module contains GKStr type which is a String like struct that can be used in const context
 pub mod kstr;
 /// This module contains GKVec type which is a String like struct that can be used in const context

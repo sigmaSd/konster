@@ -40,10 +40,7 @@ impl<const N: usize> KStr<N> {
     pub const fn push_str(mut self, other: &Self) -> Self {
         let mut idx = 0;
         while idx < other.len() {
-            match other.get(idx) {
-                Some(val) => self = self.push(*val),
-                _ => unreachable!(),
-            }
+            self = self.push(*self.get_unchecked(idx));
             idx += 1;
         }
         self
@@ -70,6 +67,10 @@ impl<const N: usize> KStr<N> {
     }
     /// Parses the String into a usize.
     pub const fn parse_usize(self) -> usize {
+        if self.is_empty() {
+            panic!("Can not parse empty String");
+        }
+
         let mut idx = 0;
         let mut result = 0;
         let mut pow = self.len() - 1;
@@ -83,6 +84,39 @@ impl<const N: usize> KStr<N> {
             idx += 1;
         }
         result as _
+    }
+    /// Returns a Vector of the String lines
+    /// The backing buffer length of the lines, and the backing buffer length for each string needs to specified as const generics.
+    pub const fn lines<const L: usize, const NN: usize>(&self) -> KVec<KStr<NN>, L> {
+        let mut idx = 0;
+        let mut vec = KVec {
+            buf: [KStr::<NN>::new(); L],
+            cursor: 0,
+        };
+        const fn push_to_lines_vec<const N: usize, const L: usize>(
+            mut vec: KVec<KStr<N>, L>,
+            elem: KStr<N>,
+        ) -> KVec<KStr<N>, L> {
+            vec.buf[vec.cursor] = elem;
+            vec.cursor += 1;
+            vec
+        }
+        let mut line = KStr::new();
+        while idx < self.len() {
+            let elem = self.get_unchecked(idx);
+            match elem {
+                b'\n' => {
+                    vec = push_to_lines_vec(vec, line);
+                    line = line.clear();
+                }
+                _ => line = line.push(*elem),
+            }
+            idx += 1;
+        }
+        if !line.is_empty() {
+            vec = push_to_lines_vec(vec, line);
+        }
+        vec
     }
     // Forword kvec methods
     /// Returns a new String with elements cleared.
@@ -101,6 +135,10 @@ impl<const N: usize> KStr<N> {
     /// Returns the element at the index, or None if its empty.
     pub const fn get(&self, elem_idx: usize) -> Option<&u8> {
         self.vec.get(elem_idx)
+    }
+    /// Returns the element at the index with no bounds check
+    pub const fn get_unchecked(&self, elem_idx: usize) -> &u8 {
+        self.vec.get_unchecked(elem_idx)
     }
     /// Returns the last element of the String, or None if it is empty.
     pub const fn last(&self) -> Option<&u8> {
