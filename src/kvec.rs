@@ -1,7 +1,7 @@
 /// Vector like struct usable in const context
 ///
 /// Its generic over its inner buffer size
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct KVec<T, const N: usize> {
     /// The Vector backing buffer
     pub buf: [T; N],
@@ -44,5 +44,13 @@ impl<T, const N: usize> KVec<T, N> {
             return None;
         }
         Some(&self.buf[self.cursor - 1])
+    }
+}
+
+impl<T: std::fmt::Debug, const N: usize> std::fmt::Debug for KVec<T, N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KVec")
+            .field("inner", &&self.buf[..self.cursor])
+            .finish()
     }
 }

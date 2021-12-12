@@ -19,6 +19,8 @@
 
 /// This module contains a Map like struct that can be used in const context
 pub mod kmap;
+/// This module contains a Set like struct that can be used in const context
+pub mod kset;
 /// This module contains a Vector like struct that can be used in const context
 pub mod kstr;
 /// This module contains a String like struct that can be used in const context
