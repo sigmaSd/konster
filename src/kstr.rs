@@ -40,7 +40,7 @@ impl<const N: usize> KStr<N> {
     pub const fn push_str(mut self, other: &Self) -> Self {
         let mut idx = 0;
         while idx < other.len() {
-            self = self.push(*self.get_unchecked(idx));
+            self = self.push(*other.get_unchecked(idx));
             idx += 1;
         }
         self
